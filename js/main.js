@@ -1,64 +1,96 @@
-/**
- * This file should only contain functions that don't interact with the DOM.
- * That means no document.querySelector, no document.getElementById, etc.
- * This file should only contain functions that do things like calculations,
- * data manipulation, etc. This is so that we can test these functions
- * without having to worry about the DOM or the browser environment.
- */
+const q  = (sel, root = document) => root.querySelector(sel);
+const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-/**
- * This function prints the string 'Hello World' to the console
- */
-export function helloWorld() {
-    console.log('Hello World');
+// Functions to collect text from the document
+function getGridText() {
+    return qa('.grid .block p').map(p => p.textContent).join(' ');
 }
 
-/**
- * This function adds two numbers together and returns the sum. This demonstrates
- * how to pass parameters to a function and return a value from a function
- * from HTML.
- * @param {number} a The first number to add
- * @param {number} b The second number to add
- * @returns {number} The sum of the two numbers
- */
-export function add(num1, num2) {
-    if (num1 === undefined || num2 === undefined) {
-        throw new Error('You must provide two numbers to add');
-    }
-    if (typeof num1 !== 'number' || typeof num2 !== 'number') {
-        throw new Error('You must provide two numbers to add');
-    }
-    return num1 + num2;
+function countParagraphs() { 
+    return qa('.grid .block p').length; 
 }
 
-/**
- * This function fetches a random joke from the "Official Joke API" and returns it.
- * @returns {string} A joke in the format "setup - punchline"
- */
-export async function fetchRandomJoke() {
-    try {
-        const response = await fetch('https://official-joke-api.appspot.com/random_joke');
-        if (!response.ok) {
-            throw new Error('Failed to fetch a joke');
-        }
-        const joke = await response.json();
-        return `${joke.setup} - ${joke.punchline}`;
-    } catch (error) {
-        throw new Error(error.message);
-    }
+function countSentences(text) {
+    const m = String(text || '').match(/[.!?](?=\s|$)/g);
+    return m ? m.length : 0;
 }
 
-export async function fetch5RandomJokes() {
-    try {
-        // This endpoint returns 10 jokes, so we need to slice the array to get 5
-        const response = await fetch('https://official-joke-api.appspot.com/random_ten');
-        if (!response.ok) {
-            throw new Error('Failed to fetch a joke');
-        }
-        const jokes = await response.json();
-        // Slice the first 5 jokes from the array
-        return jokes.slice(0, 5).map(joke => `${joke.setup} - ${joke.punchline}`);
-    } catch (error) {
-        throw new Error(error.message);
-    }
+function countWords(text) {
+    const m = String(text || '').match(/[\p{L}\p{N}’'-]+/gu);
+    return m ? m.length : 0;
 }
+
+function countLetters(text) {
+    const m = String(text || '').match(/\p{L}/gu);
+    return m ? m.length : 0;
+}
+
+// Normalize radio values
+function metricKey(value) {
+    const v = String(value || '').toLowerCase();
+    if (v.startsWith('para')) return 'Paragraphs';
+    if (v.startsWith('sent')) return 'Sentences';
+    if (v.startsWith('word')) return 'Words';
+    if (v.startsWith('lett')) return 'Letters';
+}
+
+// Compute all values
+function computeAll() {
+    const text = getGridText();
+    return {
+        Paragraphs: countParagraphs(),
+        Sentences:  countSentences(text),
+        Words:      countWords(text),
+        Letters:    countLetters(text),
+    };
+}
+
+  // Show live counts next to each radio
+  function refreshLabels(radios) {
+    const counts = computeAll();
+    radios.forEach(radio => {
+      const label  = radio.closest('label');
+      const metric = metricKey(radio.value);
+      const value  = counts[metric] ?? 0;
+
+      if (!label) return;
+
+      // Put live text in a span.metric-text (create if missing)
+      let span = label.querySelector('.metric-text');
+      if (!span) {
+        span = document.createElement('span');
+        span.className = 'metric-text';
+        label.appendChild(span);
+      }
+      span.textContent = ` ${metric}: ${value}`;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Radios live in .controls; fall back to document if needed
+    const controls = q('.controls') || document;
+    const radios   = qa('input[type="radio"]', controls);
+
+    // Enforce single selection even if names differ
+    radios.forEach(r =>
+      r.addEventListener('change', () =>
+        radios.forEach(x => { if (x !== r) x.checked = false; })
+      )
+    );
+
+    if (radios.length) refreshLabels(radios);
+
+    // Button can be #show-option or #show-quote
+    const button = q('#show-option') || q('#show-quote') || null;
+
+    if (button) {
+      button.addEventListener('click', () => {
+        if (!radios.length) { alert('No options available.'); return; }
+        const selected = radios.find(r => r.checked) || radios[0];
+        const metric   = metricKey(selected.value);
+        const counts   = computeAll();
+        alert(`${metric}: ${counts[metric] ?? 0}`);
+      });
+    }
+  });
+

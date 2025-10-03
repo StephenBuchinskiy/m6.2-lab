@@ -27,3 +27,12 @@ To run the tests for the project, run the following command:
 ```bash
 npm test
 ```
+
+## Sources
+
+https://www.w3schools.com/howto/howto_css_image_effects.asp
+https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Backgrounds_and_borders
+https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Cascade_layers
+https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Backgrounds_and_borders
+https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Images_media_forms
+ChatGPT for the live radio buttons
